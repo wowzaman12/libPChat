@@ -1,0 +1,64 @@
+TARGET = out/PChat.exe
+o = src/libco/libco.o src/common/cfgfiles.o src/common/chanopt.o src/common/ctcp.o src/common/dcc.o src/common/history.o src/common/ignore.o src/common/inbound.o src/common/modes.o src/common/msproxy.o src/common/network.o src/common/notify.o src/common/outbound.o src/common/plugin.o src/common/plugin-timer.o src/common/proto-irc.o src/common/server.o src/common/servlist.o src/common/text.o src/common/tree.o src/common/url.o src/common/userlist.o src/common/util.o src/common/wdkutil.o src/common/xchat.o 
+
+CC = gcc
+CXX = g++
+RESOURCE = windres
+PKGCONFIG = pkg-config
+STRIP = strip
+
+HAVE_GTK = 1
+#HAVE_WXWIDGETS = 0
+HAVE_OPENSSL = 1
+
+LIBS = -lwininet -lgdi32 -lwinmm -lws2_32 -lcomctl32 -lcomdlg32 -lstdc++
+DEFINES = -I. -DWIN32
+GTK_LIBS = `$(PKGCONFIG) --libs gtk+-2.0`
+GTK_CFLAGS = `$(PKGCONFIG) --cflags gtk+-2.0`
+OPENSSL_CFLAGS = `$(PKGCONFIG) --cflags openssl`
+LDFLAGS = -L. -static-libgcc -s -mwindows -mms-bitfields
+
+ifeq ($(HAVE_GTK), 1)
+   o += src/fe-gtk/about.o src/fe-gtk/ascii.o src/fe-gtk/banlist.o src/fe-gtk/chanlist.o src/fe-gtk/chanview.o src/fe-gtk/custom-list.o src/fe-gtk/dccgui.o src/fe-gtk/editlist.o src/fe-gtk/fe-gtk.o src/fe-gtk/fkeys.o src/fe-gtk/gtkutil.o src/fe-gtk/ignoregui.o src/fe-gtk/joind.o src/fe-gtk/maingui.o src/fe-gtk/menu.o src/fe-gtk/notifygui.o src/fe-gtk/palette.o src/fe-gtk/pixmaps.o src/fe-gtk/plugingui.o src/fe-gtk/plugin-tray.o src/fe-gtk/rawlog.o src/fe-gtk/search.o src/fe-gtk/servlistgui.o src/fe-gtk/setup.o src/fe-gtk/sexy-spell-entry.o src/fe-gtk/textgui.o src/fe-gtk/urlgrab.o src/fe-gtk/userlistgui.o src/fe-gtk/xtext.o src/xchat.o
+   LIBS += $(GTK_LIBS)
+   DEFINES += $(GTK_CFLAGS)
+endif
+
+ifeq ($(HAVE_OPENSSL), 1)
+   o += src/common/ssl.o
+   LIBS += `$(PKGCONFIG) --libs openssl`
+   DEFINES += $(OPENSSL_CFLAGS) -DUSE_OPENSSL
+endif
+
+ifneq ($(V),1)
+   Q := @
+endif
+
+
+CFLAGS = -std=gnu++0x -w -O3 -s -I. -mms-bitfields -lstdc++
+
+all: $(TARGET)
+
+$(TARGET): $(o)
+	$(Q)$(CC) -o $@ $(o) $(LIBS) $(LDFLAGS)
+	@$(if $(Q), $(shell echo echo LD $@),) 
+	$(STRIP) $(TARGET)
+	
+%.o: %.rc
+	$(RESOURCE) $< $@
+
+%.o: %.cpp
+	$(Q)$(CC) $(CFLAGS) $(DEFINES) -c -o $@ $<
+	@$(if $(Q), $(shell echo echo CC $<),)
+
+clean:
+	rm -f src/common/*.o
+	rm -f src/fe-gtk/*.o
+	rm -f src/xchat.o
+	rm -f src/libco/*.o
+	rm -f $(TARGET)
+
+install:
+	cp /mingw/i686-w64-mingw32/bin/*.dll out/
+
+.PHONY: all install uninstall clean

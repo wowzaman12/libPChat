@@ -1,0 +1,1 @@
+GMainLoop *main_loop;
